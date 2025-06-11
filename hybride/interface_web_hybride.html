@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Partage de fichiers</title>
+  <title>Partage de fichiers Hybride</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -30,49 +30,23 @@
 </head>
 <body>
 
-  <h1>Application de Partage de Fichiers</h1>
+  <h1>Partage de Fichier Hybride (P2P + Signalisation)</h1>
 
   <label for="fileInput">Sélectionnez un fichier :</label>
   <input type="file" id="fileInput" />
 
-  <button id="uploadBtn">📤 Envoyer le fichier</button>
-  <button id="downloadBtn">📥 Télécharger un fichier</button>
+  <label for="sessionId">ID de Session (à partager avec le receveur) :</label>
+  <input type="text" id="sessionId" placeholder="ex : session123" />
+
+  <button id="hostBtn">📤 Démarrer l'envoi</button>
+  <button id="joinBtn">📥 Rejoindre la session</button>
 
   <div class="output" id="output"></div>
 
-  <script>
-    const uploadBtn = document.getElementById("uploadBtn");
-    const downloadBtn = document.getElementById("downloadBtn");
-    const fileInput = document.getElementById("fileInput");
-    const output = document.getElementById("output");
-
-    // Exemple pour modèle cloud — à adapter selon modèle P2P / hybride
-    uploadBtn.onclick = async () => {
-      const file = fileInput.files[0];
-      if (!file) return alert("Veuillez sélectionner un fichier.");
-
-      const formData = new FormData();
-      formData.append("file", file);
-
-      try {
-        const res = await fetch("/upload", {
-          method: "POST",
-          body: formData,
-        });
-        const data = await res.json();
-        output.innerHTML = `<strong>Lien de téléchargement :</strong><br><a href="${data.downloadUrl}" target="_blank">${data.downloadUrl}</a>`;
-      } catch (err) {
-        output.innerHTML = `<span style="color:red;">Erreur lors de l'envoi</span>`;
-        console.error(err);
-      }
-    };
-
-    // À adapter selon modèle : pourrait ouvrir un champ pour entrer un ID P2P, ou utiliser le lien direct
-    downloadBtn.onclick = () => {
-      const url = prompt("Entrez le lien de téléchargement ou l'identifiant du fichier :");
-      if (url) window.open(url, "_blank");
-    };
-  </script>
+  <!-- Import de PeerJS -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <!-- Script principal -->
+  <script src="app.js"></script>
 
 </body>
 </html>
