@@ -9,7 +9,8 @@ const output = document.getElementById("output");
 let conn;
 
 const peerOptions = {
-  host: 'localhost',
+  //host: 'localhost',
+  host: '10.10.212.162',
   port: 9000,
   path: '/',
   key: 'monapp',
