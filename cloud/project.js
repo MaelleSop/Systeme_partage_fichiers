@@ -19,13 +19,19 @@ const storage = new Storage({
 const bucket = storage.bucket(process.env.GCS_BUCKET_NAME);
 
 // Utilisation du HTML
-app.use(express.static('public'));
+//app.use(express.static("public"));
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "interface_web_cloud.html"));
+});
+
+
 
 // Test du serveur
 /*app.get("/", (req, res) => {
     res.send("Le serveur fonctionne !");
-  });
-*/
+  });*/
+
 
 // Multer setup
 const multerStorage = multer.memoryStorage();
@@ -54,6 +60,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
             version: 'v4',
             action: 'read',
             expires: Date.now() + 15 * 60 * 1000, // URL valide pendant 15 min
+            responseDisposition: `attachment; filename="${filename}"`,
           });
           res.json({ downloadUrl: url });
     });

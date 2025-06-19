@@ -60,7 +60,7 @@
           body: formData,
         });
         const data = await res.json();
-        output.innerHTML = `<strong>Lien de téléchargement :</strong><br><a href="${data.downloadUrl}" target="_blank">${data.downloadUrl}</a>`;
+        output.innerHTML = `<strong>Lien de téléchargement :</strong><br><a href="${data.downloadUrl}" target="_blank">Lien de téléchargement du fichier envoyé</a>`;
       } catch (err) {
         output.innerHTML = `<span style="color:red;">Erreur lors de l'envoi</span>`;
         console.error(err);
