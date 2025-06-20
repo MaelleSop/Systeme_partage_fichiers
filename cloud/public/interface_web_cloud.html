@@ -35,8 +35,7 @@
   <label for="fileInput">Sélectionnez un fichier :</label>
   <input type="file" id="fileInput" />
 
-  <button id="uploadBtn">📤 Envoyer le fichier</button>
-  <button id="downloadBtn">📥 Télécharger un fichier</button>
+  <button id="uploadBtn">📤 Créer un lien de téléchargement</button>
 
   <div class="output" id="output"></div>
 
@@ -60,17 +59,13 @@
           body: formData,
         });
         const data = await res.json();
-        output.innerHTML = `<strong>Lien de téléchargement :</strong><br><a href="${data.downloadUrl}" target="_blank">Lien de téléchargement du fichier envoyé</a>`;
+        output.innerHTML = `<strong>Lien de téléchargement :</strong><br>
+        <a href="${data.downloadUrl}" target="_blank">Lien à copier et à partager pour télécharger le fichier</a><br>
+        <p>Ce lien est disponible pendant 15 minutes.</p>`;
       } catch (err) {
         output.innerHTML = `<span style="color:red;">Erreur lors de l'envoi</span>`;
         console.error(err);
       }
-    };
-
-    // À adapter selon modèle : pourrait ouvrir un champ pour entrer un ID P2P, ou utiliser le lien direct
-    downloadBtn.onclick = () => {
-      const url = prompt("Entrez le lien de téléchargement ou l'identifiant du fichier :");
-      if (url) window.open(url, "_blank");
     };
   </script>
 

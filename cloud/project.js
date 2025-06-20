@@ -40,17 +40,16 @@ const upload = multer({ storage: multerStorage });
 
 // Endpoint POST /upload
 app.post('/upload', upload.single('file'), async (req, res) => {
-     
     if (!req.file) return res.status(400).json({ error: "Aucun fichier reçu" });
-
     // Initialisation pour le calcul de latence
     const start = Date.now();
 
     // Création du nom de fichier et préparation d'un flux pour l'envoi du fichier vers GCS
     const filename = uuidv4() + path.extname(req.file.originalname);
     const blob = bucket.file(filename);
+    
     const blobStream = blob.createWriteStream({
-        resumable: false,
+        resumable: true,
         contentType: req.file.mimetype
     });
 
