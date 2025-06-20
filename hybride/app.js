@@ -1,15 +1,12 @@
-// === VERSION FICHIER ===
-
 const fileInput = document.getElementById("fileInput");
 const sessionIdInput = document.getElementById("sessionId");
 const hostBtn = document.getElementById("hostBtn");
 const joinBtn = document.getElementById("joinBtn");
 const output = document.getElementById("output");
-
 let conn;
 
 const peerOptions = {
-  //host: 'localhost',
+  //host: 'localhost',  pour tester en local
   host: '10.10.212.162',
   port: 9000,
   path: '/',
@@ -17,7 +14,7 @@ const peerOptions = {
   secure: false
 };
 
-// Hébergeur : envoie un fichier
+// Envoyeur : envoie un fichier
 hostBtn.onclick = () => {
   const sessionId = sessionIdInput.value.trim();
   const file = fileInput.files[0];
