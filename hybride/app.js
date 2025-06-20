@@ -36,9 +36,12 @@ hostBtn.onclick = () => {
     connection.on("open", () => {
       const reader = new FileReader();
       reader.onload = () => {
+        const startTime = Date.now();
+
         const fileData = {
           filename: file.name,
-          data: reader.result
+          data: reader.result,
+          timestamp: startTime
         };
 
         connection.send(fileData);
@@ -73,6 +76,15 @@ joinBtn.onclick = () => {
       console.log("📥 Fichier reçu :", file);
 
       if (file && file.data && file.filename) {
+        const receiveTime = Date.now();
+        const sendTime = file.timestamp;
+
+        let durationMessage = "";
+        if (typeof sendTime === "number") {
+          const duration = receiveTime - sendTime;
+          console.log(duration);
+        }
+
         const arrayBuffer = file.data instanceof ArrayBuffer
           ? file.data
           : new Uint8Array(file.data).buffer;
@@ -80,7 +92,8 @@ joinBtn.onclick = () => {
         const blob = new Blob([arrayBuffer]);
         const url = URL.createObjectURL(blob);
 
-        output.innerHTML += `<br>📄 Fichier reçu : <strong>${file.filename}</strong>`;
+        output.innerHTML += `<br>📄 Fichier reçu : <strong>${file.filename}</strong>`;        
+        
         const link = document.createElement("a");
         link.href = url;
         link.download = file.filename;
