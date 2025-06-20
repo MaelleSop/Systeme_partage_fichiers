@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Partage de fichiers (P2P)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    h1 {
+      text-align: center;
+    }
+    input, button {
+      margin: 10px 0;
+      padding: 10px;
+      width: 100%;
+    }
+    .output {
+      margin-top: 20px;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 5px;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Application de Partage de Fichiers (P2P)</h1>
+
+  <label for="fileInput">Sélectionnez un fichier :</label>
+  <input type="file" id="fileInput" />
+
+  <button id="sendBtn">📤 Envoyer</button>
+  <button id="saveBtn" disabled>📥 Sauvegarder le fichier</button>
+
+  <div class="output" id="output">
+    <p id="sendStatus"></p>
+    <p id="recvStatus"></p>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const socket = io();
+      const sendBtn = document.getElementById("sendBtn");
+      const saveBtn = document.getElementById("saveBtn");
+      const fileInput = document.getElementById("fileInput");
+      const output = document.getElementById("output");
+      const sendStatus = document.getElementById("sendStatus");
+      const recvStatus = document.getElementById("recvStatus");
+
+      let peerConnection = new RTCPeerConnection();
+      let dataChannel = peerConnection.createDataChannel("file");
+
+      let receivedChunks = [];
+      let receivedCount = 0;
+      let totalChunksExpected = null;
+      let transferStartTime = null;
+      let transferEndTime = null;
+
+      dataChannel.onopen = () => {
+        output.innerHTML += "<p><em>Connexion P2P établie. Prêt à envoyer.</em></p>";
+      };
+
+      dataChannel.onmessage = (event) => {
+        if (!transferStartTime) transferStartTime = Date.now();
+
+        if (typeof event.data === "string" && event.data === "__END_OF_TRANSFER__") {
+          transferEndTime = Date.now();
+          const duration = transferEndTime - transferStartTime;
+          output.innerHTML += `<p><strong>📦 Transfert terminé en ${duration} ms</strong></p>`;
+          socket.emit("transfer-complete");
+          saveBtn.disabled = false;
+          return;
+        }
+
+        receivedChunks.push(event.data);
+        receivedCount++;
+        recvStatus.textContent = `📥 Réception : ${receivedCount} chunk(s)`;
+      };
+
+      saveBtn.onclick = () => {
+        const blob = new Blob(receivedChunks);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "fichier_recu";
+        a.click();
+      };
+
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          socket.emit("ice-candidate", event.candidate);
+        }
+      };
+
+      socket.on("offer", async (offer) => {
+        await peerConnection.setRemoteDescription(offer);
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        socket.emit("answer", {
+          ...answer,
+          offerTimestamp: offer.timestamp || null
+        });
+      });
+
+      socket.on("answer", async (answer) => {
+        await peerConnection.setRemoteDescription(answer);
+        if (answer.offerTimestamp) {
+          const delay = Date.now() - answer.offerTimestamp;
+          output.innerHTML += `<p><em>⏱️ Temps de réponse à l’offre : ${delay} ms</em></p>`;
+        }
+      });
+
+      socket.on("ice-candidate", async (candidate) => {
+        try {
+          await peerConnection.addIceCandidate(candidate);
+        } catch (err) {
+          console.error("Erreur ICE:", err);
+        }
+      });
+
+      peerConnection.ondatachannel = (event) => {
+        const receiveChannel = event.channel;
+        receiveChannel.onmessage = (e) => {
+          if (!transferStartTime) transferStartTime = Date.now();
+
+          if (typeof e.data === "string" && e.data === "__END_OF_TRANSFER__") {
+            transferEndTime = Date.now();
+            const duration = transferEndTime - transferStartTime;
+            output.innerHTML += `<p><strong>📦 Transfert terminé en ${duration} ms</strong></p>`;
+            socket.emit("transfer-complete");
+            saveBtn.disabled = false;
+            return;
+          }
+
+          receivedChunks.push(e.data);
+          receivedCount++;
+          recvStatus.textContent = `📥 Réception : ${receivedCount} chunk(s)`;
+        };
+      };
+
+      sendBtn.onclick = async () => {
+        const file = fileInput.files[0];
+        if (!file) return alert("Veuillez sélectionner un fichier.");
+
+        const chunkSize = 16 * 1024;
+        const totalChunks = Math.ceil(file.size / chunkSize);
+        let offset = 0;
+        let sentCount = 0;
+
+        sendStatus.textContent = `🚀 Envoi : 0 / ${totalChunks}`;
+        recvStatus.textContent = ``;
+        output.innerHTML += `<p><strong>📤 Début de l'envoi du fichier (${file.name})</strong></p>`;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          dataChannel.send(e.target.result);
+          sentCount++;
+          sendStatus.textContent = `🚀 Envoi : ${sentCount} / ${totalChunks}`;
+          offset += e.target.result.byteLength;
+
+          if (offset < file.size) {
+            readSlice(offset);
+          } else {
+            output.innerHTML += "<p><strong>✅ Fichier entièrement envoyé</strong></p>";
+            dataChannel.send("__END_OF_TRANSFER__");
+          }
+        };
+
+        const readSlice = (o) => {
+          const slice = file.slice(o, o + chunkSize);
+          reader.readAsArrayBuffer(slice);
+        };
+
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        offer.timestamp = Date.now();
+        socket.emit("offer", offer);
+        readSlice(0);
+      };
+    });
+  </script>
+</body>
+</html>
